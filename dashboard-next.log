@@ -1,0 +1,23 @@
+
+> army-dashboard@1.0.0 dev
+> next dev -p 3000
+
+ ⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of /data/.openclaw/workspace/army/package-lock.json as the root directory.
+ To silence this warning, set `outputFileTracingRoot` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/output#caveats for more information.
+ Detected additional lockfiles: 
+   * /data/.openclaw/workspace/army/army-dashboard/package-lock.json
+
+   ▲ Next.js 15.5.12
+   - Local:        http://localhost:3000
+   - Network:      http://172.18.0.2:3000
+
+ ✓ Starting...
+ ✓ Ready in 1131ms
+ ○ Compiling / ...
+ ✓ Compiled / in 4s (1597 modules)
+ HEAD / 200 in 4275ms
+ ✓ Compiled in 619ms (758 modules)
+ GET / 200 in 30ms
+ HEAD / 200 in 19ms
