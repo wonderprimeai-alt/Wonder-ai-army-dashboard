@@ -1,10 +1,30 @@
 import { NextResponse } from 'next/server';
 
-// This would connect to actual Mission Control DB in production
-// For now, returning mock data structure
+// Fetch real-time data from Mission Control API on VPS
+const MC_API_URL = process.env.MC_API_URL || 'http://46.202.160.52:9876/api/mission-control';
 
 export async function GET() {
-  const now = new Date().toISOString();
+  try {
+    // Fetch from real Mission Control API
+    const response = await fetch(MC_API_URL, {
+      cache: 'no-store',
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Mission Control API returned ${response.status}`);
+    }
+    
+    const data = await response.json();
+    return NextResponse.json(data);
+    
+  } catch (error) {
+    console.error('Failed to fetch from Mission Control:', error);
+    
+    // Fallback to mock data if API is unreachable
+    const now = new Date().toISOString();
   
   const data = {
     timestamp: now,
@@ -145,7 +165,8 @@ export async function GET() {
     }
   };
   
-  return NextResponse.json(data);
+    return NextResponse.json(data);
+  }
 }
 
 export const dynamic = 'force-dynamic';
