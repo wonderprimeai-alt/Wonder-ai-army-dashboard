@@ -25,10 +25,18 @@ export async function GET() {
     // Convert Buffer to string if needed
     const dataStr = typeof data === 'string' ? data : data.toString();
     const parsed = JSON.parse(dataStr);
-    parsed._isLive = true;
-    parsed._source = 'redis-cloud';
     
-    return NextResponse.json(parsed, {
+    // Transform data to match frontend expectations
+    const transformed = {
+      ...parsed,
+      _isLive: true,
+      _source: 'redis-cloud',
+      agentMessages: parsed.messages || parsed.agentMessages || [],
+      optimizations: parsed.optimizations || [],
+      tasks: parsed.tasks || []
+    };
+    
+    return NextResponse.json(transformed, {
       headers: {
         'Cache-Control': 'no-store, no-cache, must-revalidate',
         'Pragma': 'no-cache',
