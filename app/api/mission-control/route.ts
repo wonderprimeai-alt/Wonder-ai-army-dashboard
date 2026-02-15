@@ -5,29 +5,45 @@ const MC_API_URL = process.env.MC_API_URL || 'http://46.202.160.52:9876/api/miss
 
 export async function GET() {
   try {
-    // Fetch from real Mission Control API
+    // Fetch from real Mission Control API with timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
+    
     const response = await fetch(MC_API_URL, {
       cache: 'no-store',
+      signal: controller.signal,
       headers: {
-        'Accept': 'application/json'
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache, no-store, must-revalidate'
       }
     });
+    
+    clearTimeout(timeoutId);
     
     if (!response.ok) {
       throw new Error(`Mission Control API returned ${response.status}`);
     }
     
     const data = await response.json();
+    
+    // Add a flag to indicate this is live data
+    data._isLive = true;
+    data._source = 'external-api';
+    
     return NextResponse.json(data);
     
   } catch (error) {
     console.error('Failed to fetch from Mission Control:', error);
+    console.error('Using fallback mock data. External API at', MC_API_URL, 'is unreachable.');
     
     // Fallback to mock data if API is unreachable
     const now = new Date().toISOString();
   
   const data = {
     timestamp: now,
+    _isLive: false,
+    _source: 'fallback-mock',
+    _error: error instanceof Error ? error.message : 'Unknown error',
     
     // Agent Status Feed
     agentStatuses: [

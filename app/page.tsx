@@ -26,21 +26,35 @@ export default function Dashboard() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [mcData, setMcData] = useState<MissionControlData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [isConnected, setIsConnected] = useState<boolean>(true);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const [statusRes, mcRes] = await Promise.all([
-          fetch('/api/status'),
-          fetch('/api/mission-control')
+          fetch('/api/status', { cache: 'no-store' }),
+          fetch('/api/mission-control', { cache: 'no-store' })
         ]);
+        
+        if (!statusRes.ok || !mcRes.ok) {
+          throw new Error(`API error: ${statusRes.status} / ${mcRes.status}`);
+        }
+        
         const statusData = await statusRes.json();
         const mcDataRes = await mcRes.json();
         setData(statusData);
         setMcData(mcDataRes);
         setError(null);
+        setIsConnected(true);
+        setConnectionError(null);
+        setLastUpdated(new Date());
       } catch (err) {
         setError('Failed to load dashboard data');
+        setIsConnected(false);
+        setConnectionError(err instanceof Error ? err.message : 'Connection failed');
+        console.error('Dashboard fetch error:', err);
       }
     };
 
@@ -74,9 +88,33 @@ export default function Dashboard() {
             🦾 WONDER AI ARMY
           </h1>
           <p className="text-xl text-gray-300">Mission Control • Autonomous Intelligence Network</p>
-          <p className="text-sm text-gray-400 mt-2">
-            Last updated: {new Date(data.timestamp).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}
-          </p>
+          
+          {/* Connection Status & Last Updated */}
+          <div className="flex items-center justify-center gap-6 mt-4">
+            <div className="flex items-center gap-2">
+              <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
+              <span className={`text-sm font-semibold ${isConnected ? 'text-green-400' : 'text-red-400'}`}>
+                {isConnected ? 'LIVE' : 'DISCONNECTED'}
+              </span>
+            </div>
+            
+            <div className="text-sm text-gray-400">
+              Last updated: <span className="font-semibold text-white">
+                {lastUpdated ? lastUpdated.toLocaleTimeString('en-IN', { 
+                  timeZone: 'Asia/Kolkata',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  second: '2-digit'
+                }) : 'Loading...'}
+              </span>
+            </div>
+            
+            {connectionError && (
+              <div className="text-xs text-red-400 bg-red-900/20 px-3 py-1 rounded">
+                Error: {connectionError}
+              </div>
+            )}
+          </div>
         </header>
 
         {/* Mission Control Stats */}
