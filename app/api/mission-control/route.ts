@@ -1,42 +1,46 @@
 import { NextResponse } from 'next/server';
+import { createClient } from 'redis';
 
-// Fetch real-time data from Mission Control API on VPS
-const MC_API_URL = process.env.MC_API_URL || 'http://46.202.160.52:9876/api/mission-control';
+// Redis Cloud connection (public, no firewall issues!)
+const REDIS_URL = 'redis://default:tVOyGyCoaAqt3nF65KxLSAQlm8pze0EC@redis-19694.c323.us-east-1-2.ec2.cloud.redislabs.com:19694';
+const REDIS_KEY = 'wonder:mission-control';
+
+let redisClient: any = null;
+
+async function getRedisClient() {
+  if (!redisClient) {
+    redisClient = createClient({ url: REDIS_URL });
+    redisClient.on('error', (err: Error) => console.error('Redis error:', err));
+    await redisClient.connect();
+  }
+  return redisClient;
+}
 
 export async function GET() {
   try {
-    // Fetch from real Mission Control API with timeout
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
+    const client = await getRedisClient();
+    const data = await client.get(REDIS_KEY);
     
-    const response = await fetch(MC_API_URL, {
-      cache: 'no-store',
-      signal: controller.signal,
+    if (!data) {
+      throw new Error('No data in Redis');
+    }
+    
+    const parsed = JSON.parse(data);
+    parsed._isLive = true;
+    parsed._source = 'redis-cloud';
+    
+    return NextResponse.json(parsed, {
       headers: {
-        'Accept': 'application/json',
-        'Cache-Control': 'no-cache, no-store, must-revalidate'
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
       }
     });
     
-    clearTimeout(timeoutId);
-    
-    if (!response.ok) {
-      throw new Error(`Mission Control API returned ${response.status}`);
-    }
-    
-    const data = await response.json();
-    
-    // Add a flag to indicate this is live data
-    data._isLive = true;
-    data._source = 'external-api';
-    
-    return NextResponse.json(data);
-    
   } catch (error) {
-    console.error('Failed to fetch from Mission Control:', error);
-    console.error('Using fallback mock data. External API at', MC_API_URL, 'is unreachable.');
+    console.error('Failed to fetch from Redis:', error);
     
-    // Fallback to mock data if API is unreachable
+    // Fallback to mock data
     const now = new Date().toISOString();
   
   const data = {
