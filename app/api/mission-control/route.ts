@@ -22,7 +22,9 @@ export async function GET() {
       throw new Error('No data in Redis');
     }
     
-    const parsed = JSON.parse(data);
+    // Convert Buffer to string if needed
+    const dataStr = typeof data === 'string' ? data : data.toString();
+    const parsed = JSON.parse(dataStr);
     parsed._isLive = true;
     parsed._source = 'redis-cloud';
     
