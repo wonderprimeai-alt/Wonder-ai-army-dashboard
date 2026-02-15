@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { createClient } from 'redis';
 
 // Redis Cloud connection (public, no firewall issues!)
 const REDIS_URL = 'redis://default:tVOyGyCoaAqt3nF65KxLSAQlm8pze0EC@redis-19694.c323.us-east-1-2.ec2.cloud.redislabs.com:19694';
@@ -8,7 +7,9 @@ const REDIS_KEY = 'wonder:mission-control';
 let redisClient: any = null;
 
 async function getRedisClient() {
+  // Lazy load Redis only when needed (server-side only)
   if (!redisClient) {
+    const { createClient } = await import('redis');
     redisClient = createClient({ url: REDIS_URL });
     redisClient.on('error', (err: Error) => console.error('Redis error:', err));
     await redisClient.connect();
@@ -190,3 +191,4 @@ export async function GET() {
 }
 
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs'; // Force Node.js runtime for Redis compatibility
