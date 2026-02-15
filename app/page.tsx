@@ -2,7 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { Activity, Brain, Zap, TrendingUp, AlertCircle, Users, MessageSquare, Lightbulb, CheckCircle } from 'lucide-react';
+import { Activity, Brain, Zap, TrendingUp, AlertCircle, Users, MessageSquare, Lightbulb, CheckCircle, Shield, Code, Award, MessageCircle } from 'lucide-react';
+
+// Import new components
+import AgentReasoning from '../components/AgentReasoning';
+import AgentSkills from '../components/AgentSkills';
+import ConversationsView from '../components/ConversationsView';
+import ActionsLog from '../components/ActionsLog';
+import BuildActivity from '../components/BuildActivity';
 
 interface DashboardData {
   timestamp: string;
@@ -20,7 +27,17 @@ interface MissionControlData {
   optimizations: any[];
   tasks: any[];
   stats: any;
+  // New v2.0 data
+  agentThoughts?: any[];
+  agentSkills?: any[];
+  conversations?: any[];
+  agentActions?: any[];
+  llmCalls?: any[];
+  auditLog?: any[];
+  buildEvents?: any[];
 }
+
+type TabType = 'overview' | 'reasoning' | 'skills' | 'conversations' | 'actions' | 'builds';
 
 export default function Dashboard() {
   const [data, setData] = useState<DashboardData | null>(null);
@@ -29,6 +46,7 @@ export default function Dashboard() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [isConnected, setIsConnected] = useState<boolean>(true);
   const [connectionError, setConnectionError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<TabType>('overview');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -79,6 +97,15 @@ export default function Dashboard() {
     );
   }
 
+  const tabs: { id: TabType; label: string; icon: React.ReactNode }[] = [
+    { id: 'overview', label: 'Overview', icon: <Activity className="w-4 h-4" /> },
+    { id: 'reasoning', label: 'Agent Reasoning', icon: <Brain className="w-4 h-4" /> },
+    { id: 'skills', label: 'Skills & Capabilities', icon: <Award className="w-4 h-4" /> },
+    { id: 'conversations', label: 'Conversations', icon: <MessageCircle className="w-4 h-4" /> },
+    { id: 'actions', label: 'Actions Log', icon: <Shield className="w-4 h-4" /> },
+    { id: 'builds', label: 'Build Activity', icon: <Code className="w-4 h-4" /> },
+  ];
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white p-6">
       <div className="max-w-[1800px] mx-auto">
@@ -87,7 +114,7 @@ export default function Dashboard() {
           <h1 className="text-6xl font-black mb-4 bg-gradient-to-r from-purple-400 to-pink-600 bg-clip-text text-transparent">
             🦾 WONDER AI ARMY
           </h1>
-          <p className="text-xl text-gray-300">Mission Control • Autonomous Intelligence Network</p>
+          <p className="text-xl text-gray-300">Mission Control • Autonomous Intelligence Network v2.0</p>
           
           {/* Connection Status & Last Updated */}
           <div className="flex items-center justify-center gap-6 mt-4">
@@ -117,116 +144,170 @@ export default function Dashboard() {
           </div>
         </header>
 
-        {/* Mission Control Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-8">
-          <MiniStat icon={<MessageSquare className="w-5 h-5" />} label="Unread Messages" value={mcData.stats.unreadMessages} color="blue" />
-          <MiniStat icon={<Lightbulb className="w-5 h-5" />} label="Discoveries" value={mcData.stats.actionableDiscoveries} color="yellow" />
-          <MiniStat icon={<TrendingUp className="w-5 h-5" />} label="Optimizations" value={mcData.stats.pendingOptimizations} color="green" />
-          <MiniStat icon={<CheckCircle className="w-5 h-5" />} label="Approved" value={mcData.stats.approvedOptimizations} color="green" />
-          <MiniStat icon={<Activity className="w-5 h-5" />} label="Pending Tasks" value={mcData.stats.pendingTasks} color="orange" />
-          <MiniStat icon={<Zap className="w-5 h-5" />} label="In Progress" value={mcData.stats.tasksInProgress} color="purple" />
+        {/* Tabs */}
+        <div className="flex gap-2 mb-8 overflow-x-auto pb-2">
+          {tabs.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition whitespace-nowrap ${
+                activeTab === tab.id
+                  ? 'bg-gradient-to-r from-purple-500 to-pink-600 text-white shadow-lg'
+                  : 'bg-white/5 text-gray-300 hover:bg-white/10'
+              }`}
+            >
+              {tab.icon}
+              {tab.label}
+            </button>
+          ))}
         </div>
 
-        {/* Main Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <StatCard
-            icon={<Users className="w-8 h-8" />}
-            title="Agents Deployed"
-            value={`${data.metrics.totalAgentsDeployed}/${data.metrics.totalAgentsPlanned}`}
-            subtitle={`${Math.round((data.metrics.totalAgentsDeployed / data.metrics.totalAgentsPlanned) * 100)}% deployed`}
-            color="purple"
+        {/* Tab Content */}
+        {activeTab === 'overview' && (
+          <OverviewTab data={data} mcData={mcData} />
+        )}
+
+        {activeTab === 'reasoning' && (
+          <AgentReasoning thoughts={mcData.agentThoughts || []} />
+        )}
+
+        {activeTab === 'skills' && (
+          <AgentSkills agents={mcData.agentSkills || []} />
+        )}
+
+        {activeTab === 'conversations' && (
+          <ConversationsView conversations={mcData.conversations || []} />
+        )}
+
+        {activeTab === 'actions' && (
+          <ActionsLog 
+            actions={mcData.agentActions || []}
+            llmCalls={mcData.llmCalls || []}
+            auditLog={mcData.auditLog || []}
           />
-          <StatCard
-            icon={<Activity className="w-8 h-8" />}
-            title="Messages Processed"
-            value={data.metrics.totalMessagesProcessed.toLocaleString()}
-            subtitle="Total interactions"
-            color="blue"
-          />
-          <StatCard
-            icon={<Brain className="w-8 h-8" />}
-            title="Tokens Used"
-            value={`${(data.metrics.totalTokensUsed / 1000).toFixed(1)}K`}
-            subtitle="AI compute"
-            color="green"
-          />
-          <StatCard
-            icon={<Zap className="w-8 h-8" />}
-            title="Avg Response"
-            value={`${data.metrics.avgResponseTime.toFixed(2)}s`}
-            subtitle={`${data.metrics.uptime}% uptime`}
-            color="yellow"
-          />
-        </div>
+        )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-          {/* Agent Messages */}
-          <div className="bg-white/5 backdrop-blur-lg rounded-2xl p-6 border border-white/10">
-            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-              <MessageSquare className="w-6 h-6 text-blue-400" />
-              Agent-to-Agent Messages
-            </h2>
-            <div className="space-y-4 max-h-[400px] overflow-y-auto">
-              {mcData.agentMessages.map((msg, idx) => (
-                <MessageItem key={idx} msg={msg} />
-              ))}
-            </div>
-          </div>
+        {activeTab === 'builds' && (
+          <BuildActivity events={mcData.buildEvents || []} />
+        )}
+      </div>
+    </div>
+  );
+}
 
-          {/* Discoveries */}
-          <div className="bg-white/5 backdrop-blur-lg rounded-2xl p-6 border border-white/10">
-            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-              <Lightbulb className="w-6 h-6 text-yellow-400" />
-              Agent Discoveries
-            </h2>
-            <div className="space-y-4 max-h-[400px] overflow-y-auto">
-              {mcData.discoveries.map((disc, idx) => (
-                <DiscoveryItem key={idx} discovery={disc} />
-              ))}
-            </div>
-          </div>
-        </div>
+// Overview Tab (existing dashboard)
+function OverviewTab({ data, mcData }: { data: DashboardData; mcData: MissionControlData }) {
+  return (
+    <>
+      {/* Mission Control Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-8">
+        <MiniStat icon={<MessageSquare className="w-5 h-5" />} label="Unread Messages" value={mcData.stats.unreadMessages} color="blue" />
+        <MiniStat icon={<Lightbulb className="w-5 h-5" />} label="Discoveries" value={mcData.stats.actionableDiscoveries} color="yellow" />
+        <MiniStat icon={<TrendingUp className="w-5 h-5" />} label="Optimizations" value={mcData.stats.pendingOptimizations || 0} color="green" />
+        <MiniStat icon={<CheckCircle className="w-5 h-5" />} label="Approved" value={mcData.stats.approvedOptimizations || 0} color="green" />
+        <MiniStat icon={<Activity className="w-5 h-5" />} label="Pending Tasks" value={mcData.stats.pendingTasks || 0} color="orange" />
+        <MiniStat icon={<Zap className="w-5 h-5" />} label="In Progress" value={mcData.stats.tasksInProgress || 0} color="purple" />
+      </div>
 
-        {/* Self-Optimizations */}
-        <div className="bg-white/5 backdrop-blur-lg rounded-2xl p-6 mb-8 border border-white/10">
-          <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-            <TrendingUp className="w-6 h-6 text-green-400" />
-            Self-Optimization Proposals
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {mcData.optimizations.map((opt, idx) => (
-              <OptimizationCard key={idx} opt={opt} />
-            ))}
-          </div>
-        </div>
+      {/* Main Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <StatCard
+          icon={<Users className="w-8 h-8" />}
+          title="Agents Deployed"
+          value={`${data.metrics.totalAgentsDeployed}/${data.metrics.totalAgentsPlanned}`}
+          subtitle={`${Math.round((data.metrics.totalAgentsDeployed / data.metrics.totalAgentsPlanned) * 100)}% deployed`}
+          color="purple"
+        />
+        <StatCard
+          icon={<Activity className="w-8 h-8" />}
+          title="Messages Processed"
+          value={data.metrics.totalMessagesProcessed.toLocaleString()}
+          subtitle="Total interactions"
+          color="blue"
+        />
+        <StatCard
+          icon={<Brain className="w-8 h-8" />}
+          title="Tokens Used"
+          value={`${(data.metrics.totalTokensUsed / 1000).toFixed(1)}K`}
+          subtitle="AI compute"
+          color="green"
+        />
+        <StatCard
+          icon={<Zap className="w-8 h-8" />}
+          title="Avg Response"
+          value={`${data.metrics.avgResponseTime.toFixed(2)}s`}
+          subtitle={`${data.metrics.uptime}% uptime`}
+          color="yellow"
+        />
+      </div>
 
-        {/* Active Agents */}
-        <div className="bg-white/5 backdrop-blur-lg rounded-2xl p-6 mb-8 border border-white/10">
-          <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-            <Users className="w-6 h-6 text-purple-400" />
-            Active Agents
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {data.sessions.map((agent, idx) => (
-              <AgentCard key={idx} agent={agent} />
-            ))}
-          </div>
-        </div>
-
-        {/* Communication Feed */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        {/* Agent Messages */}
         <div className="bg-white/5 backdrop-blur-lg rounded-2xl p-6 border border-white/10">
           <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-            <AlertCircle className="w-6 h-6 text-orange-400" />
-            System Communications
+            <MessageSquare className="w-6 h-6 text-blue-400" />
+            Agent-to-Agent Messages
           </h2>
-          <div className="space-y-4">
-            {data.communications.map((comm, idx) => (
-              <CommunicationItem key={idx} comm={comm} />
+          <div className="space-y-4 max-h-[400px] overflow-y-auto">
+            {mcData.agentMessages.map((msg, idx) => (
+              <MessageItem key={idx} msg={msg} />
+            ))}
+          </div>
+        </div>
+
+        {/* Discoveries */}
+        <div className="bg-white/5 backdrop-blur-lg rounded-2xl p-6 border border-white/10">
+          <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+            <Lightbulb className="w-6 h-6 text-yellow-400" />
+            Agent Discoveries
+          </h2>
+          <div className="space-y-4 max-h-[400px] overflow-y-auto">
+            {mcData.discoveries.map((disc, idx) => (
+              <DiscoveryItem key={idx} discovery={disc} />
             ))}
           </div>
         </div>
       </div>
-    </div>
+
+      {/* Self-Optimizations */}
+      <div className="bg-white/5 backdrop-blur-lg rounded-2xl p-6 mb-8 border border-white/10">
+        <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+          <TrendingUp className="w-6 h-6 text-green-400" />
+          Self-Optimization Proposals
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {mcData.optimizations.map((opt, idx) => (
+            <OptimizationCard key={idx} opt={opt} />
+          ))}
+        </div>
+      </div>
+
+      {/* Active Agents */}
+      <div className="bg-white/5 backdrop-blur-lg rounded-2xl p-6 mb-8 border border-white/10">
+        <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+          <Users className="w-6 h-6 text-purple-400" />
+          Active Agents
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {data.sessions.map((agent, idx) => (
+            <AgentCard key={idx} agent={agent} />
+          ))}
+        </div>
+      </div>
+
+      {/* Communication Feed */}
+      <div className="bg-white/5 backdrop-blur-lg rounded-2xl p-6 border border-white/10">
+        <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+          <AlertCircle className="w-6 h-6 text-orange-400" />
+          System Communications
+        </h2>
+        <div className="space-y-4">
+          {data.communications.map((comm, idx) => (
+            <CommunicationItem key={idx} comm={comm} />
+          ))}
+        </div>
+      </div>
+    </>
   );
 }
 
